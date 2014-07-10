@@ -1,0 +1,25 @@
+//makes circles at varying radii, once it finds the sample that is furthest from all other samples, 
+//returns it so you can do things with it. this is a faux poisson-disc distribution
+//var numCandidates conversly ties speed with precision, the higher the number, 
+//the slower but more random the selection is made
+//should compare 
+
+function sample() {
+  var bestCandidate, bestDistance = 0;
+  for (var i = 0; i < numCandidates; ++i) {
+    var c = [Math.random() * width, Math.random() * height],
+        d = distance(findClosest(samples, c), c);
+    if (d > bestDistance) {
+      bestDistance = d;
+      bestCandidate = c;
+    }
+  }
+  return bestCandidate;
+}
+
+//determine distance, can be done by iterating over the list (slow) or by implementing a quad tree(more difficult)
+function distance(a, b) {
+  var dx = a[0] - b[0],
+      dy = a[1] - b[1];
+  return Math.sqrt(dx * dx + dy * dy);
+}

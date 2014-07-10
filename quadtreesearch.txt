@@ -1,0 +1,137 @@
+//searhes for closest elements, don't fully understand it yet
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Quadtree</title>
+<style>
+
+.point {
+  fill: #999;
+  stroke: #fff;
+}
+
+.point.scanned {
+  fill: orange;
+  fill-opacity: 1;
+  stroke: brown;
+}
+
+.point.selected {
+  fill: red;
+  fill-opacity: 1;
+}
+
+.node {
+  fill: none;
+  stroke: #ccc;
+  shape-rendering: crispEdges;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var width = 960,
+    height = 500;
+
+var data = d3.range(2500).map(function() {
+  return [Math.random() * width, Math.random() * height];
+});
+
+var quadtree = d3.geom.quadtree()
+    .extent([[-1, -1], [width + 1, height + 1]])
+    (data);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.selectAll(".node")
+    .data(nodes(quadtree))
+  .enter().append("rect")
+    .attr("class", "node")
+    .attr("x", function(d) { return d.x0; })
+    .attr("y", function(d) { return d.y0; })
+    .attr("width", function(d) { return d.y1 - d.y0; })
+    .attr("height", function(d) { return d.x1 - d.x0; });
+
+var point = svg.selectAll(".point")
+    .data(data)
+  .enter().append("circle")
+    .attr("class", "point")
+    .attr("cx", function(d) { return d[0]; })
+    .attr("cy", function(d) { return d[1]; })
+    .attr("r", 4);
+
+svg.append("rect")
+    .attr("class", "overlay")
+    .attr("width", width)
+    .attr("height", height)
+    .on("mousemove", mousemoved);
+
+function mousemoved() {
+  var m = d3.mouse(this);
+  point.each(function(d) { d.scanned = false; });
+  var p = search(quadtree, m[0], m[1]);
+  point.classed("scanned", function(d) { return d.scanned; });
+  point.classed("selected", function(d) { return d === p; });
+}
+
+// Collapse the quadtree into an array of rectangles.
+function nodes(quadtree) {
+  var nodes = [];
+  quadtree.visit(function(node, x0, y0, x1, y1) {
+    node.x0 = x0, node.y0 = y0;
+    node.x1 = x1, node.y1 = y1;
+    nodes.push(node);
+  });
+  return nodes;
+}
+
+// Find the closest node to the specified point.
+function search(quadtree, x, y) {
+  var x0 = -Infinity, y0 = -Infinity,
+      x1 = Infinity, y1 = Infinity,
+      bestDistance2 = Infinity,
+      bestPoint;
+
+  (function search(node) {
+    var point;
+
+    // stop searching if this cell can’t contain a closer node
+    if (node.x0 > x1 || node.y0 > y1 || node.x1 < x0 || node.y1 < y0) return;
+
+    // visit this point
+    if (point = node.point) {
+      point.scanned = true;
+      var dx = x - point[0],
+          dy = y - point[1],
+          distance2 = dx * dx + dy * dy;
+      if (distance2 < bestDistance2) {
+        var distance = Math.sqrt(bestDistance2 = distance2);
+        x0 = x - distance, y0 = y - distance;
+        x1 = x + distance, y1 = y + distance;
+        bestPoint = point;
+      }
+    }
+
+    // visit closest cell first
+    var children = node.nodes,
+        right = 2 * x > node.x0 + node.x1,
+        below = 2 * y > node.y0 + node.y1;
+    if (node = children[below << 1 | right]) search(node);
+    if (node = children[below << 1 | !right]) search(node);
+    if (node = children[!below << 1 | right]) search(node);
+    if (node = children[!below << 1 | !right]) search(node);
+  })(quadtree);
+
+  return bestPoint;
+}
+
+</script>

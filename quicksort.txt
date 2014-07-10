@@ -1,0 +1,24 @@
+//sorts a random set of numbers
+//picks a pivot, adds things less than pivot to left, greater than pivot to right
+//does that again till a part only has 1 element.
+
+function quicksort(array, left, right) {
+  if (left < right - 1) {
+    var pivot = left + right >> 1;
+    pivot = partition(array, left, right, pivot);
+    quicksort(array, left, pivot);
+    quicksort(array, pivot + 1, right);
+  }
+}
+
+function partition(array, left, right, pivot) {
+  var pivotValue = array[pivot];
+  swap(array, pivot, --right);
+  for (var i = left; i < right; ++i) {
+    if (array[i] < pivotValue) {
+      swap(array, i, left++);
+    }
+  }
+  swap(array, left, right);
+  return left;
+}
